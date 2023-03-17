@@ -39,6 +39,7 @@ class SnekEnv(gym.Env):
         # They must be gym.spaces objects
         # Example when using discrete actions:
         self.rending = rending
+        self.collision = False
         self.action_space = spaces.Discrete(4)
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=-500, high=500,
@@ -48,26 +49,7 @@ class SnekEnv(gym.Env):
 
     def step(self, action):
         self.prev_actions.append(action)
-        if self.rending:
-            cv2.imshow('snake', self.img)
-            cv2.waitKey(1)
-            self.img = np.zeros((500, 500, 3), dtype='uint8')
-            # Display Apple
-            cv2.rectangle(self.img, (self.apple_position[0], self.apple_position[1]),
-                          (self.apple_position[0] + 10, self.apple_position[1] + 10), (0, 0, 255), 3)
-            # Display Snake
-            for position in self.snake_position:
-               cv2.rectangle(self.img, (position[0], position[1]), (position[0] + 10, position[1] + 10), (0, 255, 0), 3)
-
-            # Takes step after fixed time
-            t_end = time.time() + 0.05
-            k = -1
-            while time.time() < t_end:
-                if k == -1:
-                    k = cv2.waitKey(1)
-                else:
-                   continue
-
+        self.render()
         button_direction = action
         # Change the head position based on the button direction
         if button_direction == 1:
@@ -93,12 +75,8 @@ class SnekEnv(gym.Env):
 
         # On collision kill the snake and print the score
         if collision_with_boundaries(self.snake_head) == 1 or collision_with_self(self.snake_position) == 1:
-            if self.rending:
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                self.img = np.zeros((500, 500, 3), dtype='uint8')
-                cv2.putText(self.img, 'Your Score is {}'.format(self.score), (140, 250), font, 1, (255, 255, 255), 2,
-                            cv2.LINE_AA)
-                cv2.imshow('snake', self.img)
+            self.collision = True
+            self.render()
             self.done = True
 
         euclidean_dist_to_apple = np.linalg.norm(np.array(self.snake_head) - np.array(self.apple_position))
@@ -143,7 +121,7 @@ class SnekEnv(gym.Env):
         self.snake_head = [250, 250]
 
         self.prev_reward = 0
-
+        self.collision = False
         self.done = False
 
         head_x = self.snake_head[0]
@@ -162,3 +140,31 @@ class SnekEnv(gym.Env):
         obs = np.array(obs)
 
         return obs
+    def render(self, mode='human'):
+        if self.rending:
+            if not self.collision:
+                cv2.imshow('snake', self.img)
+                cv2.waitKey(1)
+                self.img = np.zeros((500, 500, 3), dtype='uint8')
+                # Display Apple
+                cv2.rectangle(self.img, (self.apple_position[0], self.apple_position[1]),
+                              (self.apple_position[0] + 10, self.apple_position[1] + 10), (0, 0, 255), 3)
+                # Display Snake
+                for position in self.snake_position:
+                    cv2.rectangle(self.img, (position[0], position[1]), (position[0] + 10, position[1] + 10), (0, 255, 0),
+                                  3)
+
+                # Takes step after fixed time
+                t_end = time.time() + 0.05
+                k = -1
+                while time.time() < t_end:
+                    if k == -1:
+                        k = cv2.waitKey(1)
+                    else:
+                        continue
+            else:
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                self.img = np.zeros((500, 500, 3), dtype='uint8')
+                cv2.putText(self.img, 'Your Score is {}'.format(self.score), (140, 250), font,
+                            1, (255, 255, 255),2,cv2.LINE_AA)
+                cv2.imshow('snake', self.img)
