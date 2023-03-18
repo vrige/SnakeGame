@@ -24,7 +24,7 @@ wrapper.reset()
 # create a model using a specific algorithm
 model = PPO('MlpPolicy', wrapper, verbose=1, tensorboard_log=logdir)
 
-# number of time steps
+# number of timesteps
 TIMESTEPS = 200000
 
 # create a callback that works with the wrapper

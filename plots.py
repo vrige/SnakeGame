@@ -124,6 +124,6 @@ def draw_graph(df, root_path, name, color = '#003f5c', separate = False):
         plt.xlabel('steps')
         plt.ylabel(name)
 
-        # save graphs in the same pdf
+        # save graphs in the same pdf file
         plt.savefig(os.path.join(root_path, name + "_CI.pdf"), bbox_inches='tight')
 
