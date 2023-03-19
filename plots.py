@@ -64,8 +64,8 @@ def plot_results(path, alpha = 0.05, separate = False, color = '#003f5c'):
         draw_graph(df, root, "Returns and length in testing", color)
     else:
         # draw two graphs in two separate pdf
-        draw_graph(df, root, "return", color, separate = True)
-        draw_graph(df, root, "length", color, separate = True)
+        draw_graph(df, root, "return", color, separate=True)
+        draw_graph(df, root, "length", color, separate=True)
 
 # function coupled with the previous function plot_results and the structure of the csv from the training.
 # The purpose of this function is to save the graphs with the means and the CI in the root_path.

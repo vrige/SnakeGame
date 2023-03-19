@@ -11,7 +11,7 @@ env.reset()
 
 # load a model
 models_dir = f"models/noRend1/Results"
-model_path = f"{models_dir}/100000.zip"
+model_path = f"{models_dir}/200000.zip"
 model = PPO.load(model_path, env=env)
 
 # number of simulations

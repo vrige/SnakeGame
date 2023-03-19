@@ -1,7 +1,7 @@
 from stable_baselines3 import PPO
 import os
 from env import SnekEnv
-from callbacks import EvaluationCallback_with_pandas, WrapperStatistics, evaluateCallback_withWrapper
+from callbacks import EvaluationCallback_with_pandas, WrapperEpisodes, evaluateCallback_withWrapper
 from plots import plot_results
 
 # create some folders to save the results in
@@ -18,7 +18,7 @@ env = SnekEnv(rending=False)
 env.reset()
 
 # create a wrapper to keep track of the episodes
-wrapper = WrapperStatistics(env, 250, verbose=0)
+wrapper = WrapperEpisodes(env, 250, verbose=0)
 wrapper.reset()
 
 # create a model using a specific algorithm
@@ -28,7 +28,7 @@ model = PPO('MlpPolicy', wrapper, verbose=1, tensorboard_log=logdir)
 TIMESTEPS = 200000
 
 # create a callback that works with the wrapper
-evalcallback = evaluateCallback_withWrapper(model, dir_path=models_dir, eval_freq=10000, verbose=0)
+evalcallback = evaluateCallback_withWrapper(model, dir_path=models_dir, eval_freq=10000, verbose=0, render=True)
 callbacks = [evalcallback]
 
 # train the model and track it on tensorboard

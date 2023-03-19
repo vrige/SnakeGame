@@ -46,6 +46,7 @@ class SnekEnv(gym.Env):
                                             shape=(5 + SNAKE_LEN_GOAL,), dtype=np.float32)
         # i need to add this here because I am using as a base a trained model without this parameter
         self.iterAround = 0
+        self.render_sim = False
 
     def step(self, action):
         self.prev_actions.append(action)
@@ -140,7 +141,14 @@ class SnekEnv(gym.Env):
         obs = np.array(obs)
 
         return obs
-    def render(self, mode='human'):
+
+    def render(self, mode='nothing'):
+        # the idea is to allow the rendering during the training when it is activated by the callback
+        if mode == 'console':
+            self.rending = False
+        elif mode == 'human':
+            self.rending = True
+
         if self.rending:
             if not self.collision:
                 cv2.imshow('snake', self.img)
@@ -168,3 +176,4 @@ class SnekEnv(gym.Env):
                 cv2.putText(self.img, 'Your Score is {}'.format(self.score), (140, 250), font,
                             1, (255, 255, 255),2,cv2.LINE_AA)
                 cv2.imshow('snake', self.img)
+
