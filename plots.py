@@ -74,6 +74,7 @@ def plot_results(path, alpha=0.05, separate=False, size=2, mode='none', color='#
 
 # function coupled with the previous function plot_results and the structure of the csv from the training.
 # The purpose of this function is to save the graphs with the means and the CI in the root_path.
+# The original function may be modified using the parameters mode and size.
 # Inputs:
 # - df is the dataframe realized with the function plot_results
 # - root_path is the path of the dir where the csv file for testing is
@@ -103,11 +104,11 @@ def draw_graph(df, root_path, name, n_simulation, conf_level, size=2,
         # means and confidence intervals graph for return
         y = df['return_mean'].to_numpy()
         ci = df['return_CI'].to_numpy()
-        lower = (y - ci).tolist()
-        upper = (y + ci).tolist()
+        x_, lower = switch_graph_method(x, y - ci, size, mode)
+        x_, upper = switch_graph_method(x, y + ci, size, mode)
         x_, y_ = switch_graph_method(x, y, size, mode)
         ax1.plot(x_, y_)
-        ax1.fill_between(x, lower, upper, color=color, alpha=.2)
+        ax1.fill_between(x_, lower, upper, color=color, alpha=.2)
         ax1.set_xlabel('steps')
         ax1.set_ylabel('return')
         ax1.title.set_text('Return mean of {} simulations with {}% CI with mode {}'
@@ -117,11 +118,11 @@ def draw_graph(df, root_path, name, n_simulation, conf_level, size=2,
         # means and confidence intervals graph for length
         y = df['length_mean'].to_numpy()
         ci = df['length_CI'].to_numpy()
-        lower = (y - ci).tolist()
-        upper = (y + ci).tolist()
+        x_, lower = switch_graph_method(x, y - ci, size, mode)
+        x_, upper = switch_graph_method(x, y + ci, size, mode)
         x_, y_ = switch_graph_method(x, y, size, mode)
         ax2.plot(x_, y_)
-        ax2.fill_between(x, lower, upper, color=color, alpha=.2)
+        ax2.fill_between(x_, lower, upper, color=color, alpha=.2)
         ax2.set_xlabel('steps')
         ax2.set_ylabel('length')
         ax2.title.set_text('Length mean of {} simulations with {}% CI with mode {}'
@@ -136,11 +137,11 @@ def draw_graph(df, root_path, name, n_simulation, conf_level, size=2,
         # plot only one graph at the time
         y = df[name + "_mean"].to_numpy()
         ci = df[name + "_CI"].to_numpy()
-        lower = (y - ci).tolist()
-        upper = (y + ci).tolist()
+        x_, lower = switch_graph_method(x, y - ci, size, mode)
+        x_, upper = switch_graph_method(x, y + ci, size, mode)
         x_, y_ = switch_graph_method(x, y, size, mode)
         plt.plot(x_, y_)
-        plt.fill_between(x, lower, upper, color=color, alpha=.2)
+        plt.fill_between(x_, lower, upper, color=color, alpha=.2)
         plt.xlabel('steps')
         plt.ylabel(name)
         plt.title('{} mean of {} simulations with {}% CI with mode {}'.
@@ -274,8 +275,6 @@ def show(x,y,size):
     input("Have a look at the plot then press Enter to continue...")
 
 # many things to be fixed:
-# 3- function to show() -> show all the methods for graphical comparison
-# 4c- how should handle CI in case of sma and wma
 # 5- creating a folder for each training with specific parameters
 # 6- somewhere if we train a new model with some parameters already used, we should cumulate the data all in
 #    one csv, so we can again use all these methods
