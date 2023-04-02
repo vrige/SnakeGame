@@ -4,14 +4,14 @@ from stable_baselines3 import PPO
 from env import SnekEnv
 from callbacks import EvaluationCallback_with_pandas, WrapperEpisodes, evaluateCallback_withWrapper
 from plots import plot_results
-# type in the terminal
-# python .\trainingFromTerminal.py --h
+
 
 # arguments for the parser for the environment
 def env_argument_parser(parser):
         parser.add_argument(
                 "--Trend",  # name on the CLI - drop the `--` for positional/required parameters
                 type=bool,
+                action=argparse.BooleanOptionalAction,
                 default=False,
                 help="Rending during training")
         return parser
@@ -50,10 +50,41 @@ def callback_argument_parser(parser):
         parser.add_argument(
                 "--RendT",  # name on the CLI - drop the `--` for positional/required parameters
                 type=bool,
+                action=argparse.BooleanOptionalAction,
                 default=False,
                 help="Rending during testing in the training")
 
         return parser
+
+# arguments for the parser for the plot_results function
+def plot_argument_parser(parser):
+    parser.add_argument(
+        "--Galpha",  # name on the CLI - drop the `--` for positional/required parameters
+        type=float,
+        default=0.05,
+        help="The level of error alpha")
+    parser.add_argument(
+        "--Gsep",
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="The flag for choosing to save two graph in the same file or in different files")
+    parser.add_argument(
+        "--Gsize",
+        type=int,
+        default=False,
+        help="used to decide how to plot the output. It is linked to the mode")
+    parser.add_argument(
+        "--Gmode",
+        choices=['none', 'smo', 'sma', 'sma-w', 'wma', 'wma-w', 'ema', 'show'],
+        default='none',
+        help="used to decide how to plot the output. It is linked to the size")
+    parser.add_argument(
+        "--Gcolor",
+        choices=['#003f5c', '#8B2323', '#53868B', '#FF6103', '#00FF00'],
+        default='#003f5c',
+        help="color for the graph")
+    return parser
 
 # arguments for the parser for the ppo algorithm
 def ppo_argument_parser(parser):
@@ -155,6 +186,7 @@ def dqn_argument_parser(parser):
         help="The gradient_steps parameter for the algorithm dqn")
     return parser
 
+
 # create a dir in a path specified inside the dict variable args
 # the found path should not contain any keys contained in env_args
 def create_dir(args, env_args):
@@ -206,7 +238,7 @@ def main():
         parser_parent = argparse.ArgumentParser(add_help=False)
 
         # adding arguments for envorinment, wrapper and callbacks
-        parser_parent = callback_argument_parser(wrapper_argument_parser(env_argument_parser(parser_parent)))
+        parser_parent = plot_argument_parser(callback_argument_parser(wrapper_argument_parser(env_argument_parser(parser_parent))))
 
         # extract the list of arguments not related to the algorithm
         list_elem_env = list(vars(parser_parent.parse_known_args()[0]))
@@ -238,7 +270,7 @@ def main():
         # extend the list of the env arguments
         list_elem_env.extend(['algorithm', 'path_results', 'v']) # v is the verbosity of the algorithm
 
-        # Create path dir if not exists
+        # Create path dir if not exists and return the pathfile
         pathfile = create_dir(args, list_elem_env)
 
         # create a text file with all the arguments
@@ -249,31 +281,49 @@ def main():
         env.reset()
 
         # create a wrapper to keep track of the episodes
-        wrapper = WrapperEpisodes(env, args["Wverb"], args["Isize"])
+        wrapper = WrapperEpisodes(env, args["Isize"], args["Wverb"])
         wrapper.reset()
 
+        model = 0
+        # create a model using a specific algorithm
         if args_ns.algorithm == "ppo":
-
-            # create a model using a specific algorithm
             model = PPO(args["p"], wrapper, args["v"], tensorboard_log=logdir)
-
-            # create a callback that works with the wrapper
-            evalcallback = evaluateCallback_withWrapper(model, dir_path=pathfile, n_eval_episodes=args["Neval"],
-                                                        eval_freq=args["Feval"], verbose=args["Cverb"],
-                                                        render=args["RendT"])
-            callbacks = [evalcallback]
-
-            # train the model and track it on tensorboard
-            model.learn(total_timesteps=args["st"], reset_num_timesteps=False, tb_log_name=f"PPO", callback=callbacks)
-
-            # plot the results with the CI and save the testing in a csv file
-            #plot_results(os.path.join(pathfile, "testing.csv"))
-            #plot_results(os.path.join(pathfile, "testing.csv"), separate=True)
-
             pass
 
         elif args_ns.algorithm == "dqn":
             print("FIXME")
             pass
 
+        # create a callback that works with the wrapper
+        evalcallback = evaluateCallback_withWrapper(model, dir_path=pathfile, n_eval_episodes=args["Neval"],
+                                                    eval_freq=args["Feval"], verbose=args["Cverb"],
+                                                    render=args["RendT"])
+        callbacks = [evalcallback]
+
+        # train the model and track it on tensorboard
+        model.learn(total_timesteps=args["st"], reset_num_timesteps=False, tb_log_name=args["algorithm"],
+                    callback=callbacks)
+
+        # plot the results with the CI and save the testing in a csv file
+        plot_results(os.path.join(pathfile, "testing.csv"), alpha=args["Galpha"], separate=args["Gsep"],
+                     size=args["Gsize"], mode=args["Gmode"], color=args["Gcolor"])
+
+
 if __name__ == '__main__': main()
+# pip install stable-baselines3
+# pip install torch===1.11.0 torchvision===0.1.6
+# pip install scipy
+
+# type in the terminal
+# python .\trainingFromTerminal.py --h
+# python .\trainingFromTerminal.py ppo --h
+# python .\trainingFromTerminal.py ppo --st 100000 --Neval 36 --Feval 10000 --Gsep
+# python .\trainingFromTerminal.py ppo --st 50000 --Neval 36 --Feval 10000 --RendT
+
+
+
+# 4- verbose doesn't work
+# 5- when you train a model with again some specific parameters then you should merge the results
+# 6- print a prog with a sum up of the arguments and flags' values
+# 7- implement the syntax also for other algorithms
+# 8- tuning of hyperparameters

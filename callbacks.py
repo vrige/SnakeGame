@@ -218,7 +218,7 @@ class evaluateCallback_withWrapper(BaseCallback):
         self.training_env = model.get_env()
         self.verbose = verbose
         self.step_bool = step_bool
-        self.filepath = os.path.join(dir_path, f"Results")
+        self.filepath = dir_path
         self.eval_freq = eval_freq
         self.eval_env = eval_env
         self.n_eval_episodes = n_eval_episodes
@@ -233,11 +233,13 @@ class evaluateCallback_withWrapper(BaseCallback):
 
     def _on_training_start(self) -> None:
         # create the dir to save the results in if it doesn't exist
+        '''
         if not os.path.exists(self.filepath):
             if self.verbose >= 1:
                 print("creating the dir Return inside the path: " + self.filepath)
             os.makedirs(self.filepath)
         pass
+        '''
 
     def _on_step(self) -> bool:
         # if the episode is finished and the function is in verbose-mode, then
@@ -276,8 +278,10 @@ class evaluateCallback_withWrapper(BaseCallback):
                 print("evaluating at step: " + str(self.n_calls) + ", ep mean reward: " +
                       str(mean_reward) + ", ep mean length: " + str(std_reward))
 
+
             # if the mean return is better than the previous one, save the new model
-            if mean_reward > self.best_mean_reward:
+            # in case of the first call, save the first best_mean_reward and save the model
+            if mean_reward > self.best_mean_reward or self.n_calls == self.eval_freq:
                 if self.verbose > 0:
                     print("New best mean reward!")
 
