@@ -41,7 +41,7 @@ def plot_results(path, alpha=0.05, separate=False, size=2, mode='none', color='#
     df['n_steps'] = x_steps
 
     # number of simulations
-    n_sim = df["n_simul"].iloc[1]
+    n_sim = df["n_simul"].max()
     # Confidence levels
     Conf = 1 - alpha / 2
     conf_level = (1 - alpha) * 100
@@ -93,7 +93,10 @@ def draw_graph(df, root_path, name, n_simulation, conf_level, size=2,
     x = df['n_steps'].to_numpy()
     # set the scale format by getting the frequency and then finding the largest exponent
     # in base 10 such that that power is lower than x
-    min_scale = scale_check(math.gcd(x[0], x[1]))
+    check = x
+    if len(x) > 1:
+        check = math.gcd(x[0], x[1])
+    min_scale = scale_check(check)
 
     if not separate:
 
