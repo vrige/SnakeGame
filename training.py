@@ -1,6 +1,6 @@
 from stable_baselines3 import PPO
 import os
-from env import SnekEnv
+from env import SneakEnv
 from callbacks import EvaluationCallback_with_pandas, WrapperEpisodes, evaluateCallback_withWrapper
 from plots import plot_results
 
@@ -14,7 +14,7 @@ if not os.path.exists(logdir):
 	os.makedirs(logdir)
 
 # create the custom env for the snake game
-env = SnekEnv(rending=False)
+env = SneakEnv(rending=False)
 env.reset()
 
 # create a wrapper to keep track of the episodes

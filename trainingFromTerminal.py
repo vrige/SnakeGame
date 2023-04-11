@@ -1,7 +1,7 @@
 import argparse
 import os
 from stable_baselines3 import PPO
-from env import SnekEnv
+from env import SneakEnv
 from callbacks import EvaluationCallback_with_pandas, WrapperEpisodes, evaluateCallback_withWrapper
 from plots import plot_results
 
@@ -14,6 +14,11 @@ def env_argument_parser(parser):
                 action=argparse.BooleanOptionalAction,
                 default=False,
                 help="Rending during training")
+        parser.add_argument(
+                "--Sgoal",  # name on the CLI - drop the `--` for positional/required parameters
+                type=int,
+                default=30,
+                help="The goal of the snake is to reach a certain length")
         return parser
 
 # arguments for the parser for the wrapper
@@ -89,61 +94,92 @@ def plot_argument_parser(parser):
 # arguments for the parser for the ppo algorithm
 def ppo_argument_parser(parser):
     parser.add_argument(
-        "--v",  # name on the CLI - drop the `--` for positional/required parameters
-        type=int,
-        default=0,
-        help="The verbosity of the model")
-    parser.add_argument(
-        "--p",
-        choices=['MlpPolicy', 'MlpLstmPolicy', 'MlpLnLstmPolicy',
-                 'CnnPolicy', 'CnnLstmPolicy', 'CnnLnLstmPolicy'],
-        default='MlpPolicy',
-        help="The policy of the algorithm ppo")
-    parser.add_argument(
         "--lr",
         type=float,
         default=0.00003,
+        dest="learning_rate",
         help="The learning rate of the algorithm ppo")
-    parser.add_argument(
-        "--st",
-        type=int,
-        default=2048,
-        help="The number of steps of the algorithm ppo")
     parser.add_argument(
         "--bs",
         type=int,
         default=64,
+        dest="batch_size",
         help="The batch size of the algorithm ppo")
     parser.add_argument(
         "--ne",
         type=int,
         default=10,
+        dest="n_epochs",
         help="The number of epochs of the algorithm ppo")
     parser.add_argument(
         "--g",
         type=float,
         default=0.99,
+        dest="gamma",
         help="The gamma parameter for the algorithm ppo")
     parser.add_argument(
         "--gl",
         type=float,
         default=0.95,
+        dest="gae_lambda",
         help="The gae_lambda parameter for the algorithm ppo")
+    parser.add_argument(
+        "--na",
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        dest="normalize_advantage",
+        help="Whether to normalize or not the advantage")
+    parser.add_argument(
+        "--ec",
+        type=float,
+        default=0,
+        dest="ent_coef",
+        help="Entropy coefficient for the loss calculation")
+    parser.add_argument(
+        "--vf",
+        type=float,
+        default=0.5,
+        dest="vf_coef",
+        help="Value function coefficient for the loss calculation")
+    parser.add_argument(
+        "--mgn",
+        type=float,
+        default=0.5,
+        dest="max_grad_norm",
+        help="The maximum value for the gradient clipping")
+    parser.add_argument(
+        "--s",
+        type=int,
+        default=None,
+        dest="seed",
+        help="Seed for the pseudo random generators")
     return parser
 
-# arguments for the parser for the dqn algorithm
-def dqn_argument_parser(parser):
-    parser.add_argument(
-        "--v",  # name on the CLI - drop the `--` for positional/required parameters
-        type=int,
-        default=0,
-        help="The verbosity of the model")
+def algo_extra_parser(parser):
     parser.add_argument(
         "--p",
         choices=['MlpPolicy', 'MlpLstmPolicy', 'MlpLnLstmPolicy',
                  'CnnPolicy', 'CnnLstmPolicy', 'CnnLnLstmPolicy'],
-        default='MlpLstmPolicy',
-        help="The policy of the algorithm dqn")
+        default='MlpPolicy',
+        dest="policy",
+        help="The policy of the algorithm ppo")
+    parser.add_argument(
+        "--v",  # name on the CLI - drop the `--` for positional/required parameters
+        type=int,
+        default=0,
+        dest="verbose",
+        help="The verbosity of the model")
+    parser.add_argument(
+        "--st",
+        type=int,
+        default=2048,
+        dest="n_steps",
+        help="The number of steps of the algorithm ppo")
+    return parser
+
+# arguments for the parser for the dqn algorithm
+def dqn_argument_parser(parser):
     parser.add_argument(
         "--lr",
         type=float,
@@ -186,6 +222,13 @@ def dqn_argument_parser(parser):
         help="The gradient_steps parameter for the algorithm dqn")
     return parser
 
+# remove intersection between to dictionary
+def noInterDict(args1, args2):
+    args3 = args1.copy()
+    for key, value in args1.items():
+        if key in args2:
+            args3.pop(key, None)
+    return args3
 
 # create a dir in a path specified inside the dict variable args
 # the found path should not contain any keys contained in env_args
@@ -239,6 +282,7 @@ def main():
 
         # adding arguments for envorinment, wrapper and callbacks
         parser_parent = plot_argument_parser(callback_argument_parser(wrapper_argument_parser(env_argument_parser(parser_parent))))
+        parser_parent = algo_extra_parser(parser_parent)
 
         # extract the list of arguments not related to the algorithm
         list_elem_env = list(vars(parser_parent.parse_known_args()[0]))
@@ -268,7 +312,10 @@ def main():
         args = vars(args_ns)
 
         # extend the list of the env arguments
-        list_elem_env.extend(['algorithm', 'path_results', 'v']) # v is the verbosity of the algorithm
+        list_elem_env.extend(['algorithm', 'path_results', 'verbose'])
+
+        # create a dict with only parameters to pass to the specified algorithm
+        list_elem_algo = noInterDict(args, list_elem_env)
 
         # Create path dir if not exists and return the pathfile
         pathfile = create_dir(args, list_elem_env)
@@ -277,7 +324,7 @@ def main():
         print_info_file(args, pathfile)
 
         # create the custom env for the snake game
-        env = SnekEnv(rending=args["Trend"])
+        env = SneakEnv(rending=args["Trend"], snake_len_goal=args["Sgoal"])
         env.reset()
 
         # create a wrapper to keep track of the episodes
@@ -287,11 +334,12 @@ def main():
         model = 0
         # create a model using a specific algorithm
         if args_ns.algorithm == "ppo":
-            model = PPO(args["p"], wrapper, args["v"], tensorboard_log=logdir)
+            model = PPO(policy=args["policy"], env=wrapper, verbose=args["verbose"],
+                        tensorboard_log=logdir, **list_elem_algo)
             pass
 
         elif args_ns.algorithm == "dqn":
-            print("FIXME")
+            # FIXME
             pass
 
         # create a callback that works with the wrapper
@@ -301,7 +349,7 @@ def main():
         callbacks = [evalcallback]
 
         # train the model and track it on tensorboard
-        model.learn(total_timesteps=args["st"], reset_num_timesteps=False, tb_log_name=args["algorithm"],
+        model.learn(total_timesteps=args["n_steps"], reset_num_timesteps=False, tb_log_name=args["algorithm"],
                     callback=callbacks)
 
         # plot the results with the CI and save the testing in a csv file
