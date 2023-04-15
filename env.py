@@ -25,6 +25,58 @@ def collision_with_self(snake_position):
     else:
         return 0
 
+def getting_close(previous_head, snake_head, apple_position):
+    if (abs(previous_head[0] - apple_position[0]) + abs(previous_head[1] - apple_position[1])) <= (abs(snake_head[0] - apple_position[0]) + abs(snake_head[1] - apple_position[1])):
+        return False
+    else:
+        return True
+
+# in order to avoid that the snake will eat its "neck" the number of action is reduced from 4 to 3
+# This implies to use the orientation of the snake to understand where it wants to go
+# - First, the new postion of the sneak head is computed using the orientation and the direction of the action
+#   (which can be 0, 1 or 2 and it corresponds to left, straight and right from the snake head point of view)
+# - Second, compute the new orientation
+def get_next_action(snake_head_orientation, move_direction, snake_head):
+    move = 10
+    new_snake_head = snake_head.copy()
+
+    # vertical orientation
+    if snake_head_orientation in ["UP", "DOWN"]:
+        if snake_head_orientation == "DOWN":
+            move = -10
+        if move_direction == 0:    # left
+            new_snake_head[0] -= move
+        elif move_direction == 1:  # straight
+            new_snake_head[1] -= move
+        else:                      # right
+            new_snake_head[0] += move
+
+    # horizontal orientation
+    else:
+        if snake_head_orientation == "LEFT":
+            move = -10
+        if move_direction == 0:    # left
+            new_snake_head[1] -= move
+        elif move_direction == 1:  # straight
+            new_snake_head[0] += move
+        else:                      # right
+            new_snake_head[1] += move
+
+    # save the new orientation
+    if new_snake_head[0] == snake_head[0]:
+
+        if new_snake_head[1] > snake_head[1]:
+            new_snake_head_orientation = "DOWN"
+        else:
+            new_snake_head_orientation = "UP"
+    else:
+        if new_snake_head[0] > snake_head[0]:
+            new_snake_head_orientation = "RIGHT"
+        else:
+            new_snake_head_orientation = "LEFT"
+
+    return new_snake_head, new_snake_head_orientation
+
 class SneakEnv(gym.Env):
     def __init__(self, reward_system=None, rending=False, snake_len_goal=30):
         super(SneakEnv, self).__init__()
@@ -35,6 +87,7 @@ class SneakEnv(gym.Env):
         # Because they are linked with the events of the game where we want the snake to learn.
         self.reward_system = reward_system
         if reward_system is None:
+            '''
             self.reward_system = {
                 "apple": 10000,
                 "nothing": 0,
@@ -43,6 +96,13 @@ class SneakEnv(gym.Env):
                 "dist_f": lambda x, y: np.linalg.norm(x-y),
                 "tot_rew": lambda x, y, z: (250 - self.reward_system["dist_f"](x, y) + z) / 100
                             if (self.reward_system["dist"]) else (250 + z) / 100
+            }
+            '''
+            self.reward_system = {
+                "apple": 100,
+                "close": 1,
+                "far": -1,
+                "die": -100,
             }
 
         # The goal of the snake is to reach a certain length
@@ -54,7 +114,7 @@ class SneakEnv(gym.Env):
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
-        self.action_space = spaces.Discrete(4)
+        self.action_space = spaces.Discrete(3)
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=-500, high=500,
                                             shape=(5 + self.snake_len_goal,), dtype=np.float32)
@@ -65,26 +125,22 @@ class SneakEnv(gym.Env):
         self.render()
         button_direction = action
         # Change the head position based on the button direction
-        if button_direction == 1:
-            self.snake_head[0] += 10
-        elif button_direction == 0:
-            self.snake_head[0] -= 10
-        elif button_direction == 2:
-            self.snake_head[1] += 10
-        elif button_direction == 3:
-            self.snake_head[1] -= 10
+        self.snake_head, self.snake_head_orientation = get_next_action(self.snake_head_orientation,
+                                                                    button_direction, self.snake_head)
 
+        self.snake_position.insert(0, list(self.snake_head))
         event_reward = 0
         # Increase Snake length on eating apple
         if self.snake_head == self.apple_position:
             self.apple_position, self.score = collision_with_apple(self.apple_position, self.score)
-            self.snake_position.insert(0, list(self.snake_head))
             event_reward = self.reward_system["apple"]
 
         else:
-            self.snake_position.insert(0, list(self.snake_head))
             self.snake_position.pop()
-            event_reward = self.reward_system["nothing"]
+            if getting_close(self.previous_head, self.snake_head, self.apple_position):
+                event_reward = self.reward_system["close"]
+            else:
+                event_reward = self.reward_system["far"]
 
         # On collision kill the snake and print the score
         if collision_with_boundaries(self.snake_head) == 1 or collision_with_self(self.snake_position) == 1:
@@ -93,8 +149,9 @@ class SneakEnv(gym.Env):
             self.done = True
             event_reward = self.reward_system["die"]
 
-        self.total_reward = self.reward_system["tot_rew"](np.array(self.snake_head),
-                                                          np.array(self.apple_position), event_reward)
+        self.total_reward = event_reward
+
+        self.previous_head = self.snake_head
 
         head_x = self.snake_head[0]
         head_y = self.snake_head[1]
@@ -118,9 +175,10 @@ class SneakEnv(gym.Env):
         self.snake_position = [[250, 250], [240, 250], [230, 250]]
         self.apple_position = [random.randrange(1, 50) * 10, random.randrange(1, 50) * 10]
         self.score = 0
-        self.prev_button_direction = 1
-        self.button_direction = 1
+
+        self.snake_head_orientation = "RIGHT"
         self.snake_head = [250, 250]
+        self.previous_head = self.snake_head
 
         self.collision = False
         self.done = False

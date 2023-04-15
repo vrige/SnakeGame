@@ -1,21 +1,21 @@
 from stable_baselines3 import PPO
-from env import SnekEnv
+from env import SneakEnv
 from stable_baselines3.common.env_checker import check_env
 
 # create a virtual env for snake game
-env = SnekEnv(rending=True)
+env = SneakEnv(rending=True)
 env.reset()
 
 # check if the env is working
 #check_env(env)
 
 # load a model
-models_dir = f"models/noRend1/Results"
-model_path = f"{models_dir}/330000.zip"
+models_dir = f"models/result"
+model_path = f"{models_dir}/20000.zip"
 model = PPO.load(model_path, env=env)
 
 # number of simulations
-episodes = 15
+episodes = 30
 
 # simulate the model
 for ep in range(episodes):

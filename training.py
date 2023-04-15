@@ -25,7 +25,7 @@ wrapper.reset()
 model = PPO('MlpPolicy', wrapper, verbose=1, tensorboard_log=logdir)
 
 # number of timesteps
-TIMESTEPS = 100000
+TIMESTEPS = 20000
 
 # create a callback that works with the wrapper
 evalcallback = evaluateCallback_withWrapper(model, dir_path=models_dir, n_eval_episodes=35,

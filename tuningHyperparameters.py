@@ -94,18 +94,8 @@ def objective(trial: optuna.Trial) -> float:
     # Sample hyperparameters.
     kwargs.update(sample_ppo_params(trial))
 
-    reward_system = {
-        "apple": 10000,
-        "nothing": 0,
-        "die": -1000,
-        "dist": True,
-        "dist_f": lambda x, y: np.linalg.norm(x - y),
-        "tot_rew": lambda x, y, z: (250 - reward_system["dist_f"](x, y) + z) / 100
-                    if (reward_system["dist"]) else (250 + z) / 100
-    }
-
     # create the custom env for the snake game
-    eval_env = Monitor(SneakEnv(reward_system=reward_system, rending=False))
+    eval_env = Monitor(SneakEnv(rending=False))
     eval_env.reset()
 
     # create a wrapper to keep track of the episodes
@@ -189,25 +179,25 @@ joblib.dump(study, f"{savepath}/snake_ppo_tuning.pkl")   # save study
 
 #print(jl.best_trial.params)
 '''
-[I 2023-04-09 11:28:33,007] A new study created in memory with name: no-name-c6523846-8956-4f60-b6fd-7a4699003e36
-[I 2023-04-09 11:29:33,362] Trial 0 finished with value: -20.323461333333334 and parameters: {'lr': 0.09345756527828554, 'exponent_n_steps': 14, 'exponent_batch_size': 7, 'n_epoches': 10, 'gamma': 0.742441555512156, 'gae_lambda': 0.7749889988132174, 'ent_coef': 1.0654872824091608e-06, 'vf_coef': 1.0563003600739571e-07, 'max_grad_norm': 0.3111076661892704, 'normalize_advantage': True}. Best is trial 0 with value: -20.323461333333334.
-Number of finished trials:  2
+[I 2023-04-11 10:04:34,764] A new study created in memory with name: no-name-4ae53d4e-1844-4437-8082-c1c80b40836b
+[I 2023-04-11 10:05:00,908] Trial 0 finished with value: 8.106089599999999 and parameters: {'lr': 0.00706981696463819, 'exponent_n_steps': 11, 'exponent_batch_size': 8, 'n_epoches': 6, 'gamma': 0.9370831424072001, 'gae_lambda': 0.5680893963980804, 'ent_coef': 1.992013431937773e-06, 'vf_coef': 0.0012540365129698676, 'max_grad_norm': 0.7165258640211681, 'normalize_advantage': True}. Best is trial 0 with value: 8.106089599999999.
+[I 2023-04-11 10:09:16,217] Trial 1 finished with value: -23.5619328 and parameters: {'lr': 0.03212322574358495, 'exponent_n_steps': 12, 'exponent_batch_size': 2, 'n_epoches': 7, 'gamma': 0.5859895869462459, 'gae_lambda': 0.758823410332787, 'ent_coef': 0.001992086793082053, 'vf_coef': 0.010219090336029694, 'max_grad_norm': 1.0903228690304987, 'normalize_advantage': False}. Best is trial 0 with value: 8.106089599999999.
+Number of finished trials:  3
 Best trial:
-  Value:  -4.136033333333334
+  Value:  8.106089599999999
   Params: 
-    lr: 0.00021791348291227945
-    exponent_n_steps: 18
-    exponent_batch_size: 5
-    n_epoches: 20
-    gamma: 0.9902749463214242
-    gae_lambda: 0.5476525588418972
-    ent_coef: 2.3999203924972125e-07
-    vf_coef: 0.000607547698237474
-    max_grad_norm: 2.865597112860597
+    lr: 0.00706981696463819
+    exponent_n_steps: 11
+    exponent_batch_size: 8
+    n_epoches: 6
+    gamma: 0.9370831424072001
+    gae_lambda: 0.5680893963980804
+    ent_coef: 1.992013431937773e-06
+    vf_coef: 0.0012540365129698676
+    max_grad_norm: 0.7165258640211681
     normalize_advantage: True
   User attrs:
-[I 2023-04-09 11:53:04,917] Trial 1 finished with value: -4.136033333333334 and parameters: {'lr': 0.00021791348291227945, 'exponent_n_steps': 18, 'exponent_batch_size': 5, 'n_epoches': 20, 'gamma': 0.9902749463214242, 'gae_lambda': 0.5476525588418972, 'ent_coef': 2.3999203924972125e-07, 'vf_coef': 0.000607547698237474, 'max_grad_norm': 2.865597112860597, 'normalize_advantage': True}. Best is trial 1 with value: -4.136033333333334.
+[I 2023-04-11 10:24:53,336] Trial 2 finished with value: -6.017462399999999 and parameters: {'lr': 4.443615044433846e-05, 'exponent_n_steps': 14, 'exponent_batch_size': 2, 'n_epoches': 17, 'gamma': 0.6462480549832594, 'gae_lambda': 0.6130253096945992, 'ent_coef': 0.05815745026936087, 'vf_coef': 1.1749742540586791e-08, 'max_grad_norm': 1.0196489879672814, 'normalize_advantage': True}. Best is trial 0 with value: 8.106089599999999.
 
-Process finished with exit code 0
 
 '''
