@@ -3,7 +3,7 @@ from env import SneakEnv
 from stable_baselines3.common.env_checker import check_env
 
 # create a virtual env for snake game
-env = SneakEnv(rending=True)
+env = SneakEnv(rending=True, dim=100)
 env.reset()
 
 # check if the env is working
@@ -11,11 +11,11 @@ env.reset()
 
 # load a model
 models_dir = f"models/result"
-model_path = f"{models_dir}/20000.zip"
+model_path = f"{models_dir}/80000.zip"
 model = PPO.load(model_path, env=env)
 
 # number of simulations
-episodes = 30
+episodes = 10
 
 # simulate the model
 for ep in range(episodes):

@@ -19,6 +19,12 @@ def env_argument_parser(parser):
                 type=int,
                 default=30,
                 help="The goal of the snake is to reach a certain length")
+        parser.add_argument(
+                "--Sdim",
+                type=int,
+                choices=[500, 400, 300, 200, 100],
+                default=500,
+                help="Dimension of the window. It affects the number of avaiable cells. (example: 500 means 50x50 cells)")
         return parser
 
 # arguments for the parser for the wrapper
