@@ -24,7 +24,14 @@ def env_argument_parser(parser):
                 type=int,
                 choices=[500, 400, 300, 200, 100],
                 default=500,
-                help="Dimension of the window. It affects the number of avaiable cells. (example: 500 means 50x50 cells)")
+                help="Dimension of the window. It needs Trend flag on. It affects the number of available cells. "
+                     "(example: 500 means 50x50 cells)")
+        parser.add_argument(
+                "--Stime",
+                type=float,
+                choices=[0.01, 0.05, 0.1, 0.3, 0.5, 1],
+                default=0.05,
+                help="Time for visualization. It needs Trend flag on")
         return parser
 
 # arguments for the parser for the wrapper
@@ -330,7 +337,7 @@ def main():
         print_info_file(args, pathfile)
 
         # create the custom env for the snake game
-        env = SneakEnv(rending=args["Trend"], snake_len_goal=args["Sgoal"])
+        env = SneakEnv(rending=args["Trend"], snake_len_goal=args["Sgoal"], dim=args["Sdim"], time_speed=args["Stime"])
         env.reset()
 
         # create a wrapper to keep track of the episodes
