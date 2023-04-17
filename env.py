@@ -137,6 +137,7 @@ class SneakEnv(gym.Env):
         self.snake_head, illegal = move_and_check_illegal_move(self.snake_position, button_direction, self.cell_dim)
 
         if not illegal:
+
             self.render()
             self.snake_position.insert(0, list(self.snake_head))
             event_reward = 0
