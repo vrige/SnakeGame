@@ -7,8 +7,14 @@ import random
 import time
 from collections import deque
 
-def collision_with_apple(score, dim, cell_size=10):
-    apple_position = [random.randrange(1, int(dim/cell_size)) * cell_size, random.randrange(1, int(dim/cell_size)) * cell_size]
+def collision_with_apple(score, dim, snake_position, cell_size):
+    apple_in_snake = True
+    while apple_in_snake:
+        apple_position = [random.randrange(1, int(dim/cell_size)) * cell_size, random.randrange(1, int(dim/cell_size)) * cell_size]
+        if apple_position in snake_position:
+            apple_in_snake = True
+        else:
+            apple_in_snake = False
     score += 1
     return apple_position, score
 
@@ -31,51 +37,24 @@ def getting_close(previous_head, snake_head, apple_position):
     else:
         return True
 
-# in order to avoid that the snake will eat its "neck" the number of action is reduced from 4 to 3
-# This implies to use the orientation of the snake to understand where it wants to go
-# - First, the new postion of the sneak head is computed using the orientation and the direction of the action
-#   (which can be 0, 1 or 2 and it corresponds to left, straight and right from the snake head point of view)
-# - Second, compute the new orientation
-def get_next_action(snake_head_orientation, move_direction, snake_head, cell_size=10):
-    move = cell_size
-    new_snake_head = snake_head.copy()
+def move_and_check_illegal_move(snake_position, move_direction, cell_size):
+    new_snake_head = snake_position[0].copy()
+    illegal = False
 
-    # vertical orientation
-    if snake_head_orientation in ["UP", "DOWN"]:
-        if snake_head_orientation == "DOWN":
-            move = move * (-1)
-        if move_direction == 0:    # left
-            new_snake_head[0] -= move
-        elif move_direction == 1:  # straight
-            new_snake_head[1] -= move
-        else:                      # right
-            new_snake_head[0] += move
+    if move_direction == 0:
+        new_snake_head[0] -= cell_size   # left
+    elif move_direction == 1:
+        new_snake_head[1] -= cell_size   # up
+    elif move_direction == 2:
+        new_snake_head[0] += cell_size   # right
+    elif move_direction == 3:
+        new_snake_head[1] += cell_size   # down
 
-    # horizontal orientation
-    else:
-        if snake_head_orientation == "LEFT":
-            move = move * (-1)
-        if move_direction == 0:    # left
-            new_snake_head[1] -= move
-        elif move_direction == 1:  # straight
-            new_snake_head[0] += move
-        else:                      # right
-            new_snake_head[1] += move
+    if new_snake_head in snake_position[1:2]:
+        new_snake_head = snake_position[0].copy()
+        illegal = True
 
-    # save the new orientation
-    if new_snake_head[0] == snake_head[0]:
-
-        if new_snake_head[1] > snake_head[1]:
-            new_snake_head_orientation = "DOWN"
-        else:
-            new_snake_head_orientation = "UP"
-    else:
-        if new_snake_head[0] > snake_head[0]:
-            new_snake_head_orientation = "RIGHT"
-        else:
-            new_snake_head_orientation = "LEFT"
-
-    return new_snake_head, new_snake_head_orientation
+    return new_snake_head, illegal
 
 # Check that the dim is one of the following: 100, 200, 300, 400 or 500.
 # In the case it is not, then take the default size: 500
@@ -98,6 +77,11 @@ def amplify_dim(dim):
     else:
         return dim, 10
 
+def get_death_info(snake_position):
+    print("---------------------------------------------------")
+    for pos in snake_position:
+        print("pos_x: " + str(pos[0]) + ", pos_y: " + str(pos[1]))
+
 class SneakEnv(gym.Env):
     def __init__(self, reward_system=None, rending=False, snake_len_goal=30, dim=500, time_speed=0.05):
         super(SneakEnv, self).__init__()
@@ -114,8 +98,7 @@ class SneakEnv(gym.Env):
                 "close": 0,
                 "far": 0,
                 "die": -1,
-                "time": -1,
-                "after-tot": 100,
+                "illegal": -1,
                 "dist_f": lambda x, y: np.linalg.norm(x-y),
                 "tot_rew": lambda x, y, z: (50 - self.reward_system["dist_f"](x, y) + z) / 100
             }
@@ -141,7 +124,7 @@ class SneakEnv(gym.Env):
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
-        self.action_space = spaces.Discrete(3)
+        self.action_space = spaces.Discrete(4)
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=-500, high=500,
                                             shape=(5 + self.snake_len_goal,), dtype=np.float32)
@@ -149,45 +132,37 @@ class SneakEnv(gym.Env):
 
     def step(self, action):
         self.prev_actions.append(action)
-        self.render()
         button_direction = action
         # Change the head position based on the button direction
-        self.snake_head, self.snake_head_orientation = get_next_action(self.snake_head_orientation,
-                                                                    button_direction, self.snake_head, self.cell_dim)
-        self.time_steps += 1
+        self.snake_head, illegal = move_and_check_illegal_move(self.snake_position, button_direction, self.cell_dim)
 
-        self.snake_position.insert(0, list(self.snake_head))
-        event_reward = 0
-        # Increase Snake length on eating apple
-        if self.snake_head == self.apple_position:
-            self.apple_position, self.score = collision_with_apple(self.score, self.dim_ampl, self.cell_dim)
-            event_reward = self.reward_system["apple"]
-            self.time_steps = 0
+        if not illegal:
+            self.render()
+            self.snake_position.insert(0, list(self.snake_head))
+            event_reward = 0
+            # Increase Snake length on eating apple
+            if self.snake_head == self.apple_position:
+                self.apple_position, self.score = collision_with_apple(self.score, self.dim_ampl, self.snake_position, self.cell_dim)
+                event_reward = self.reward_system["apple"]
 
-        else:
-            self.snake_position.pop()
-            if getting_close(self.previous_head, self.snake_head, self.apple_position):
-                event_reward = self.reward_system["close"]
             else:
-                event_reward = self.reward_system["far"]
+                self.snake_position.pop()
+                if getting_close(self.previous_head, self.snake_head, self.apple_position):
+                    event_reward = self.reward_system["close"]
+                else:
+                    event_reward = self.reward_system["far"]
 
-        # On collision kill the snake and print the score
-        if collision_with_boundaries(self.snake_head, self.dim_ampl) == 1 or collision_with_self(self.snake_position) == 1:
-            self.collision = True
-            self.render()
-            self.done = True
-            event_reward = self.reward_system["die"]
+            # On collision kill the snake and print the score
+            if collision_with_boundaries(self.snake_head, self.dim_ampl) == 1 or collision_with_self(self.snake_position) == 1:
+                self.collision = True
+                self.render()
+                self.done = True
+                event_reward = self.reward_system["die"]
 
-        '''
-        if self.time_steps >= self.reward_system["after-tot"]:
-            event_reward = self.reward_system["time"]
-            self.render()
-            self.done = True
-            self.total_reward = event_reward
-        '''
-
-        self.total_reward = self.reward_system["tot_rew"](np.array(self.snake_head),
-                                                              np.array(self.apple_position), event_reward)
+            self.total_reward = self.reward_system["tot_rew"](np.array(self.snake_head),
+                                                                  np.array(self.apple_position), event_reward)
+        else:
+            self.total_reward = self.reward_system["illegal"]
 
         self.previous_head = self.snake_head
 
@@ -199,7 +174,6 @@ class SneakEnv(gym.Env):
         apple_delta_y = self.apple_position[1] - head_y
 
         # create observation:
-
         obs = [head_x, head_y, apple_delta_x, apple_delta_y, snake_length] + list(self.prev_actions)
         obs = np.array(obs)
 
@@ -217,10 +191,8 @@ class SneakEnv(gym.Env):
                                random.randrange(1, int(self.dim_ampl/self.cell_dim)) * self.cell_dim]
         self.score = 0
 
-        self.snake_head_orientation = "RIGHT"
         self.snake_head = [dim, dim]
         self.previous_head = self.snake_head
-        self.time_steps = 0
 
         self.collision = False
         self.done = False
