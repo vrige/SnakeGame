@@ -108,15 +108,16 @@ class SneakEnv(gym.Env):
         # Because they are linked with the events of the game where we want the snake to learn.
         self.reward_system = reward_system
         if reward_system is None:
-            '''
+
             self.reward_system = {
                 "apple": 10000,
-                "nothing": 0,
-                "die": -1000,
-                "dist": True,
+                "close": 0,
+                "far": 0,
+                "die": -1,
+                "time": -1,
+                "after-tot": 100,
                 "dist_f": lambda x, y: np.linalg.norm(x-y),
-                "tot_rew": lambda x, y, z: (250 - self.reward_system["dist_f"](x, y) + z) / 100
-                            if (self.reward_system["dist"]) else (250 + z) / 100
+                "tot_rew": lambda x, y, z: (50 - self.reward_system["dist_f"](x, y) + z) / 100
             }
             '''
             self.reward_system = {
@@ -127,7 +128,7 @@ class SneakEnv(gym.Env):
                 "time": -1,
                 "after-tot": 100
             }
-
+            '''
         # The goal of the snake is to reach a certain length
         self.snake_len_goal = snake_len_goal
 
@@ -177,12 +178,16 @@ class SneakEnv(gym.Env):
             self.done = True
             event_reward = self.reward_system["die"]
 
+        '''
         if self.time_steps >= self.reward_system["after-tot"]:
             event_reward = self.reward_system["time"]
             self.render()
             self.done = True
+            self.total_reward = event_reward
+        '''
 
-        self.total_reward = event_reward
+        self.total_reward = self.reward_system["tot_rew"](np.array(self.snake_head),
+                                                              np.array(self.apple_position), event_reward)
 
         self.previous_head = self.snake_head
 
