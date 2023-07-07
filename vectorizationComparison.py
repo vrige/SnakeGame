@@ -18,7 +18,7 @@ for i in range(100):
 		break
 
 processors = [2, 4, 8, 16, 32, 64, 128]
-TIMESTEPS = 200000
+TIMESTEPS = 100000
 time_sub = []
 time_dummy = []
 time_normal = 0
@@ -34,7 +34,7 @@ for i in processors:
 		start = time()
 		model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False)
 		end = time()
-		time_normal = end - start
+		time_normal = round(end - start, 3)
 		print("normal it needed ", time_normal)
 
 	# create a SubprocVecEnv custom env for the snake game
@@ -51,23 +51,38 @@ for i in processors:
 	start_sub = time()
 	model_sub.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False)
 	end_sub = time()
-	print("sub with ", i," processors, it needed ", end_sub - start_sub)
+	print("sub with ", i, " processors, it needed ", round(end_sub - start_sub, 3))
 
 	start_dummy = time()
 	model_dummy.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False)
 	end_dummy = time()
-	print("dummy with ", i, " processors, it needed ", end_dummy - start_dummy)
+	print("dummy with ", i, " processors, it needed ", round(end_dummy - start_dummy, 3))
 
-	time_sub.append(end_sub - start_sub)
-	time_dummy.append(end_dummy - start_dummy)
+	time_sub.append(round(end_sub - start_sub, 3))
+	time_dummy.append(round(end_dummy - start_dummy, 3))
 
 print(processors)
 print(time_sub)
 print(time_dummy)
 
+import pandas as pd
+d = {'col1': time_dummy, 'col2': time_dummy}
+print(pd.DataFrame(data=d, index=processors))
+
+# timesteps:     100000
+# processors:	   1        2, 		 4, 	 8,	     16, 	   32, 	    64, 	128
+# SubprocVecEnv: 		 66.959   61.619   56.94   61.733    52.162   50.613   93.945
+# DummyVecEnv:  	     58.587   55.884   51.323  55.221    46.052   46.041   90.214
+# no vector:    61.385
 
 # timesteps:     200000
 # processors:	   1        2, 		 4, 	8,		  16, 	  32, 	    64, 	128
 # SubprocVecEnv: 		129.043, 109.243, 103.451,  93.853, 104.552, 100.272,  99.601
 # DummyVecEnv:  	    104.208, 101.861,  96.188,  83.833, 109.159,  94.108,  92.497
 # no vector:    131.969
+
+# timesteps:     400000
+# processors:	   1        2, 		 4, 	 8, 	  16, 	  32, 	    64, 	128
+# SubprocVecEnv:		 236.044  203.962  189.736  251.075  186.624  207.332  213.203
+# DummyVecEnv:			 207.035  174.376  158.807  188.2    189.302  183.297  211.013
+# no vector:    257.019
